@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>분수 조각 색칠 게임</title>
+<style>
+:root{--ink:#293447;--blue:#3978c8;--yellow:#f5c451;--pale:#f5f8fc;--line:#8795a8;--green:#27845c}
+*{box-sizing:border-box}
+body{margin:0;background:#f2f6fb;color:var(--ink);font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+main{max-width:900px;margin:0 auto;padding:18px}
+header,.panel{background:white;border-radius:20px;padding:20px;box-shadow:0 3px 14px #243b5312;margin-bottom:15px}
+h1{font-size:clamp(24px,4vw,34px);margin:0 0 8px;text-align:center}
+.sub{text-align:center;color:#64748b;margin:0}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:15px 0}
+.pill{background:#edf4ff;color:#245da5;padding:8px 13px;border-radius:30px;font-weight:700}
+.progress{height:10px;background:#e7edf5;border-radius:10px;overflow:hidden;margin-top:10px}
+.progress span{display:block;height:100%;background:#6ba2e8;width:0;transition:width .2s}
+h2{font-size:21px;margin:0 0 10px}
+.instruction{font-size:17px;line-height:1.6;text-align:center;margin:8px 0 18px}
+.fraction{font-size:34px;font-weight:800;display:inline-flex;vertical-align:middle;flex-direction:column;align-items:center;line-height:1.05;margin:0 5px}
+.fraction .num{border-bottom:2px solid currentColor;padding:0 9px 4px}
+.fraction .den{padding-top:3px}
+.visual{display:flex;flex-direction:column;align-items:center;gap:15px;padding:8px 0 18px}
+.pizzas{display:flex;gap:15px;flex-wrap:wrap;justify-content:center}
+.pizza{width:clamp(112px,23vw,155px);height:clamp(112px,23vw,155px);border-radius:50%;border:3px solid #88633d;position:relative;overflow:hidden;background:#fff9e9;touch-action:manipulation}
+.pizza svg{width:100%;height:100%;display:block}
+.barrows{width:min(100%,650px);display:flex;flex-direction:column;gap:14px}
+.barrow{display:flex;align-items:center;gap:12px}
+.barlabel{width:72px;flex:none;color:var(--ink);font-size:18px;font-weight:800}
+.bar{display:flex;flex:1;height:54px;border:2px solid #53657c;border-radius:5px;overflow:hidden;background:#fff}
+.cell{flex:1;min-width:0;border:0;border-right:2px dotted #75849a;background:#fff;cursor:pointer;touch-action:manipulation}
+.cell:last-child{border-right:0}
+.cell.filled{background:#f5c451}
+.cell:focus-visible,.pizza:focus-visible{outline:4px solid #3978c8;outline-offset:3px}
+.counter{font-weight:700;color:#475569;text-align:center}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+button{border:0;border-radius:12px;padding:13px 20px;font-size:16px;font-weight:700;cursor:pointer}
+.primary{background:var(--blue);color:white}
+.secondary{background:#e9eef5;color:#334155}
+button:disabled{opacity:.5;cursor:not-allowed}
+.answerbox{display:flex;justify-content:center;align-items:center;gap:14px;flex-wrap:wrap;margin:18px 0}.answerfraction{display:inline-flex;flex-direction:column;align-items:center;gap:4px;font-size:20px;font-weight:800}.answerfraction input{width:76px;height:42px;padding:5px;border:2px solid #cbd5e1;border-radius:8px;font-size:20px;text-align:center}.answerfraction .denominator{min-width:76px;border-top:2px solid var(--ink);padding-top:5px;text-align:center;font-size:21px;line-height:1.2}.wholeanswer{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:800}
+input{width:90px;padding:12px;border:2px solid #cbd5e1;border-radius:10px;font-size:20px;text-align:center}
+.feedback{text-align:center;min-height:32px;font-weight:700;font-size:18px;margin:12px 0 0}
+.feedback.good{color:var(--green)}.feedback.try{color:#b45309}
+.small{font-size:14px;color:#64748b;text-align:center;line-height:1.6}
+.done{text-align:center;padding:25px}
+.done .big{font-size:42px}
+@media(max-width:480px){main{padding:10px}.panel,header{padding:15px}.bar{height:46px}.barlabel{width:62px;font-size:17px}.instruction{font-size:16px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>🍕 분수 조각 색칠 게임</h1>
+  <p class="sub">그림을 눌러 색칠하고, 분수를 바꾸어 보세요!</p>
+  <div class="topline">
+    <span class="pill" id="round">1 / 50번</span>
+    <span class="pill" id="score">⭐ 0점</span>
+  </div>
+  <div class="progress"><span id="progress"></span></div>
+</header>
+<section class="panel" id="game">
+  <h2 id="kind">가분수 → 대분수</h2>
+  <div class="instruction" id="question"></div>
+  <div class="visual" id="visual"></div>
+  <div class="counter" id="counter">색칠한 조각: 0개</div>
+  <div class="answerbox" id="answerbox"></div>
+  <div class="actions">
+    <button class="primary" id="check">정답 확인</button>
+    <button class="secondary" id="reset">다시 색칠하기</button>
+  </div>
+  <div class="feedback" id="feedback" aria-live="polite"></div>
+  <p class="small">색칠하려는 조각을 누르세요. 다시 누르면 색칠이 지워집니다.</p>
+</section>
+<section class="panel done" id="finish" hidden>
+  <div class="big">🏆</div>
+  <h2>50문제를 모두 풀었어요!</h2>
+  <p id="finalscore"></p>
+  <button class="primary" onclick="location.reload()">처음부터 다시 하기</button>
+</section>
+</main>
+<script>
+const TOTAL=50;
+let questions=[],index=0,score=0,selected=new Set(),locked=false,current=null;
+const $=id=>document.getElementById(id);
+function gcd(a,b){return b?gcd(b,a%b):a}
+function makeQuestions(){
+  const qs=[];
+  // 25 improper-to-mixed and 25 mixed-to-improper, with denominators 2–6.
+  for(let i=0;i<25;i++){
+    const d=2+(i%5), n=d+1+((i*3+1)%(d*2-1));
+    qs.push({type:'improper',n,d,target:n,whole:Math.floor(n/d),rem:n%d});
+  }
+  for(let i=0;i<25;i++){
+    const d=2+((i+2)%5),w=1+(i%3),r=1+((i*2+1)%(d-1));
+    qs.push({type:'mixed',d,w,r,target:w*d+r});
+  }
+  // Mix types while keeping all 50 questions.
+  for(let i=qs.length-1;i>0;i--){const j=(i*17+11)%(i+1);[qs[i],qs[j]]=[qs[j],qs[i]]}
+  return qs;
+}
+function frac(n,d){return `<span class="fraction"><span class="num">${n}</span><span class="den">${d}</span></span>`}
+function pizzaSVG(parts,filled){
+ let paths='';
+ for(let j=0;j<parts;j++){
+   const a1=(-90+j*360/parts)*Math.PI/180,a2=(-90+(j+1)*360/parts)*Math.PI/180;
+   const x1=50+48*Math.cos(a1),y1=50+48*Math.sin(a1),x2=50+48*Math.cos(a2),y2=50+48*Math.sin(a2);
+   const large=(360/parts)>180?1:0;
+   paths+=`<path d="M50 50 L${x1} ${y1} A48 48 0 ${large} 1 ${x2} ${y2} Z" fill="${filled?'#f5c451':'#fff9e9'}" stroke="#88633d" stroke-width="1.8"/>`;
+ }
+ return `<svg viewBox="0 0 100 100" aria-hidden="true">${paths}</svg>`;
+}
+function render(){
+ current=questions[index];selected=new Set();locked=false;
+ $('round').textContent=`${index+1} / ${TOTAL}번`;
+ $('score').textContent=`⭐ ${score}점`;
+ $('progress').style.width=`${index/TOTAL*100}%`;
+ $('feedback').textContent='';$('feedback').className='feedback';
+ $('kind').textContent=current.type==='improper'?'가분수 → 대분수':'대분수 → 가분수';
+ $('question').innerHTML=current.type==='improper'
+ ? `피자 ${frac(current.n,current.d)}만큼 색칠해 보세요.<br><span class="small">피자 한 판은 ${current.d}조각이에요. 모두 ${current.target}조각을 색칠하세요.</span>`
+ : `막대 ${current.w}와 ${frac(current.r,current.d)}만큼 색칠해 보세요.<br><span class="small">한 막대는 ${current.d}칸이에요. 전체 ${current.target}칸을 색칠하세요.</span>`;
+ $('visual').innerHTML='';
+ if(current.type==='improper'){
+   const count=Math.ceil(current.target/current.d);
+   const wrap=document.createElement('div');wrap.className='pizzas';
+   for(let p=0;p<count;p++){
+     const el=document.createElement('div');el.className='pizza';el.setAttribute('aria-label',`피자 ${p+1}`);
+     el.innerHTML=pizzaSVG(current.d,false);
+     const svg=el.querySelector('svg');
+     for(let k=0;k<current.d;k++){
+       const a1=(-90+k*360/current.d)*Math.PI/180,a2=(-90+(k+1)*360/current.d)*Math.PI/180;
+       const x1=50+48*Math.cos(a1),y1=50+48*Math.sin(a1),x2=50+48*Math.cos(a2),y2=50+48*Math.sin(a2);
+       const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+       path.setAttribute('d',`M50 50 L${x1} ${y1} A48 48 0 0 1 ${x2} ${y2} Z`);
+       path.setAttribute('fill','#fff9e9');path.setAttribute('stroke','#88633d');path.setAttribute('stroke-width','1.8');
+       path.style.cursor='pointer';path.addEventListener('click',()=>{
+         if(locked)return;const id=p*current.d+k;
+         selected.has(id)?selected.delete(id):selected.add(id);updateVisual();
+       });
+       svg.appendChild(path);
+     }
+     wrap.appendChild(el);
+   }
+   $('visual').appendChild(wrap);
+ }else{
+   const wrap=document.createElement('div');wrap.className='barrows';
+   const count=current.w+1;
+   for(let r=0;r<count;r++){
+     const row=document.createElement('div');row.className='barrow';
+     row.innerHTML=`<span class="barlabel">막대 ${r+1}</span><div class="bar" role="group" aria-label="막대 ${r+1}"></div>`;
+     const bar=row.querySelector('.bar');
+     for(let c=0;c<current.d;c++){
+       const id=r*current.d+c,cell=document.createElement('button');cell.type='button';cell.className='cell';cell.setAttribute('aria-label',`${r+1}번째 막대 ${c+1}번째 칸`);
+       cell.addEventListener('click',()=>{if(locked)return;selected.has(id)?selected.delete(id):selected.add(id);updateVisual()});
+       bar.appendChild(cell);
+     }
+     wrap.appendChild(row);
+   }
+   $('visual').appendChild(wrap);
+ }
+ $('answerbox').innerHTML=current.type==='improper'
+ ? `<div class="wholeanswer">자연수 <input id="whole" type="number" min="0" inputmode="numeric" aria-label="자연수"> 와</div><div class="answerfraction"><input id="ans2" type="number" min="0" inputmode="numeric" aria-label="분자"><div class="denominator">${current.d}</div></div>`
+ : `<div class="wholeanswer">가분수</div><div class="answerfraction"><input id="ans1" type="number" min="1" inputmode="numeric" aria-label="분자"><div class="denominator">${current.d}</div></div>`;
+ updateVisual();
+}
+function updateVisual(){
+ if(current.type==='improper'){
+   document.querySelectorAll('.pizza').forEach((el,p)=>{
+     el.querySelectorAll('svg path').forEach((path,j)=>{
+       path.setAttribute('fill',selected.has(p*current.d+j)?'#f5c451':'#fff9e9');
+     });
+   });
+ }else{
+   document.querySelectorAll('.cell').forEach((el,i)=>el.classList.toggle('filled',selected.has(i)));
+ }
+ $('counter').textContent=`색칠한 조각: ${selected.size}개 / ${current.target}개`;
+}
+$('check').addEventListener('click',()=>{
+ if(locked)return;
+ if(selected.size!==current.target){$('feedback').textContent=`조각을 ${current.target}개 색칠해야 해요. 지금은 ${selected.size}개예요.`;$('feedback').className='feedback try';return}
+ const a=current.type==='improper'?Number($('whole').value):Number($('ans1').value);
+ const b=current.type==='improper'?Number($('ans2').value):null;
+ const correct=current.type==='improper'?(a===current.whole&&b===current.rem):(a===current.target);
+ if(correct){
+   score+=2;locked=true;$('feedback').textContent='정답이에요! 아주 잘했어요! 🎉';$('feedback').className='feedback good';
+   $('score').textContent=`⭐ ${score}점`;
+   $('check').textContent=index===TOTAL-1?'결과 보기':'다음 문제';
+   $('check').onclick=()=>{index++;if(index>=TOTAL){$('game').hidden=true;$('finish').hidden=false;$('finalscore').textContent=`50문제 완료! ${score}점을 모았어요.`;$('progress').style.width='100%';}else{$('check').textContent='정답 확인';$('check').onclick=null;render();}};
+ }else{$('feedback').textContent='아직 정답이 아니에요. 색칠한 조각을 세어 다시 생각해 보세요.';$('feedback').className='feedback try'}
+});
+$('reset').addEventListener('click',()=>{if(locked)return;selected.clear();updateVisual();$('feedback').textContent='';$('feedback').className='feedback';});
+questions=makeQuestions();render();
+</script>
+</body>
+</html>
